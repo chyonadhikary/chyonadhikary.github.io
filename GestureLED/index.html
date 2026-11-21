@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0e0f11" />
+    <meta name="description" content="GestureLED — ESP32 hardware vision controller." />
+    <title>GestureLED — ESP32 Hardware Vision Controller</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+    <script type="module" src="https://skr-electronics-lab.github.io/esp-flasher-button/esp-flasher-button.js"></script>
+  </head>
+  <body>
+    <div class="app-container">
+      <header class="app-header">
+        <div class="brand-section">
+          <div class="brand-logo-unit" aria-hidden="true">
+            <svg class="brand-logo-img" viewBox="0 0 44 44" role="img" aria-label="GestureLED mark">
+              <rect x="1" y="1" width="42" height="42" rx="11" fill="#202226" stroke="#3a3e46" />
+              <path d="M12 28.5 17.5 23l4 4 10.5-11" fill="none" stroke="#2bff00" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+              <circle cx="12" cy="28.5" r="2.2" fill="#2bff00" />
+              <circle cx="32" cy="16" r="2.2" fill="#2bff00" />
+            </svg>
+          </div>
+          <div class="brand-meta">
+            <div class="brand-title-row">
+              <h1 class="brand-title">GestureLED</h1>
+              <span class="brand-badge">ESP32 · v1.0.0</span>
+            </div>
+            <span class="brand-sub">Hardware Vision Controller · Chyon Adhikary</span>
+          </div>
+        </div>
+        <div class="header-actions">
+          <esp-flasher-button id="firmwareFlasher" manifest="firmware/manifest.json" label="Install Firmware" theme="dark" size="13.5" baud="460800" wifi="false" no-wifi>
+            <button slot="activate" class="btn-flasher-custom" type="button" title="Flash GestureLED firmware to ESP32">
+              <svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8Z" /></svg>
+              <span>Install Firmware</span>
+            </button>
+          </esp-flasher-button>
+          <button class="btn-serial" id="connectSerial" type="button" title="Connect to ESP32 over Web Serial at 115200 baud">
+            <svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.7 19.3 19 5M21 3l-3 1 2 2ZM9.3 7.7 5 12l2 5m3-3 5 2 3.5-3.5" /><circle cx="10" cy="7" r="1" /><circle cx="4" cy="20" r="1" /><circle cx="18" cy="12" r="1" /></svg>
+            <span id="serialButtonText">Connect USB Serial</span>
+          </button>
+          <a class="btn-icon-link" href="https://github.com/skr-electronics-lab/GestureLED" target="_blank" rel="noopener" title="Open GitHub Repository" aria-label="Open GitHub Repository">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" /><path d="M9 18c-4.51 2-5-2-7-2" /></svg>
+          </a>
+          <div class="status-bar" id="statusBar" aria-live="polite">
+            <span class="status-dot disconnected" id="statusDot"></span>
+            <span class="status-text" id="statusText">Disconnected</span>
+            <span class="status-baud">115200 Baud</span>
+          </div>
+        </div>
+      </header>
+
+      <main class="workspace-grid">
+        <section class="card-panel camera-panel" aria-label="Camera preview">
+          <div class="viewport-frame" id="viewportFrame">
+            <video id="webcamVideo" playsinline muted></video>
+            <canvas id="outputCanvas"></canvas>
+            <span class="panel-tag" id="trackingStatus">No Hand Detected</span>
+            <span class="meta-fps" id="fpsDisplay">0 FPS</span>
+            <div class="viewport-fallback" id="cameraFallback">
+              <div class="fallback-icon-wrap">
+                <svg class="svg-icon svg-icon-lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z" /><circle cx="12" cy="13" r="3" /></svg>
+              </div>
+              <h2 class="fallback-heading" id="fallbackTitle">Webcam access required</h2>
+              <p class="fallback-text" id="fallbackDesc">Enable your camera to run hand tracking. Video is processed locally in your browser and never uploaded.</p>
+              <button class="btn-solid-primary" id="enableCamera" type="button">Enable camera</button>
+            </div>
+            <div class="camera-demo-controls" id="cameraDemoControls" hidden>
+              <span class="demo-label">Demo input</span>
+              <button class="demo-chip active" type="button" data-demo="none">Waiting</button>
+              <button class="demo-chip" type="button" data-demo="open">Open palm</button>
+              <button class="demo-chip" type="button" data-demo="closed">Closed fist</button>
+              <button class="demo-chip" type="button" data-demo="pinch">Pinch</button>
+              <button class="demo-chip" type="button" data-demo="fingers">3 fingers</button>
+            </div>
+          </div>
+        </section>
+
+        <aside class="side-column">
+          <nav class="mode-tabs" role="tablist" aria-label="Gesture mode">
+            <button class="tab-btn active" type="button" role="tab" aria-selected="true" data-mode="1"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 10V6a1.8 1.8 0 0 0-3.6 0v3.5M14.4 9.5V3.8a1.8 1.8 0 0 0-3.6 0V9M10.8 9.5V5a1.8 1.8 0 0 0-3.6 0v7.5" /><path d="M7.2 12.5V8.5a1.8 1.8 0 0 0-3.6 0v6.8c0 4.2 3.4 7.7 7.6 7.7h1.6c3.9 0 7.2-3.1 7.2-7v-6" /></svg><span>Palm switch</span></button>
+            <button class="tab-btn" type="button" role="tab" aria-selected="false" data-mode="2"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16c0-3.5 2.5-6.5 6-6.5h1a2 2 0 0 0 2-2V5a2 2 0 0 0-4 0v2.5" /><path d="M6 16a3.5 3.5 0 0 0 3.5 3.5h2.5a2 2 0 0 0 2-2v-2.5a2 2 0 0 0-2-2H9M18 9v6m-2-4 2-2 2 2m-4 2 2 2 2-2" /></svg><span>Pinch dimmer</span></button>
+            <button class="tab-btn" type="button" role="tab" aria-selected="false" data-mode="3"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 12V6a1.5 1.5 0 0 1 3 0v6M11 10V4a1.5 1.5 0 0 1 3 0v6M14 11V5a1.5 1.5 0 0 1 3 0v7" /><path d="M17 13.5a1.5 1.5 0 0 1 3 0v3.5c0 3.5-3 6-6.5 6H12c-3.5 0-6.5-2.5-6.5-6v-3a1.5 1.5 0 0 1 3 0v2" /></svg><span>Finger counter</span></button>
+            <button class="tab-btn" type="button" role="tab" aria-selected="false" data-mode="4"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="4" /><circle cx="7" cy="7" r="1.5" /><circle cx="17" cy="7" r="1.5" /><circle cx="7" cy="17" r="1.5" /><circle cx="17" cy="17" r="1.5" /><path d="M7 12h10M12 7v10" /></svg><span>Wokwi</span></button>
+          </nav>
+
+          <div class="panel-body">
+            <section class="mode-pane active" id="mode1" role="tabpanel">
+              <div class="telemetry-row"><span class="telemetry-label">Detected gesture</span><div class="state-pill" id="palmState">WAITING FOR HAND</div></div>
+              <p class="instruction-box">Open palm turns all 5 LEDs on. Closed fist turns them off. A command is sent only when the state changes.</p>
+              <div class="matrix-card" data-matrix="1"><div class="matrix-card-header"><span class="matrix-card-title">Live Hardware Channels</span><span class="matrix-card-badge">ESP32 GPIO Rails</span></div><div class="matrix-channels"></div></div>
+              <div class="command-outbox"><span class="outbox-label">Last command sent</span><code class="outbox-code" id="cmd1">MODE1:OFF</code></div>
+            </section>
+
+            <section class="mode-pane" id="mode2" role="tabpanel" hidden>
+              <div class="telemetry-row"><div class="dimmer-metric-header"><span class="telemetry-label">Brightness</span><span class="dimmer-metric-value" id="brightnessValue">0 / 255 (0%)</span></div><div class="flat-bar-rail"><div class="flat-bar-fill" id="brightnessBar"></div></div></div>
+              <div class="telemetry-sub"><span>Distance between fingertips</span><span class="sub-mono" id="pinchDistance">0.000</span></div>
+              <p class="instruction-box">Pinch thumb and index finger together to dim, spread them apart to brighten. Updates about 10 times per second.</p>
+              <div class="matrix-card" data-matrix="2"><div class="matrix-card-header"><span class="matrix-card-title">Live Hardware Channels</span><span class="matrix-card-badge">LEDC 5 kHz PWM</span></div><div class="matrix-channels"></div></div>
+              <div class="command-outbox"><span class="outbox-label">Last command sent</span><code class="outbox-code" id="cmd2">MODE2:0</code></div>
+            </section>
+
+            <section class="mode-pane" id="mode3" role="tabpanel" hidden>
+              <div class="counter-top"><div><span class="telemetry-label">Fingers up</span><div class="counter-number"><strong id="fingerCount">0</strong><span>/ 5</span></div></div><span class="state-pill" id="fingerState">All Outputs Inactive</span></div>
+              <div class="led-grid" id="ledGrid"></div>
+              <div class="finger-grid" id="fingerGrid"></div>
+              <p class="instruction-box">Hold up 0 to 5 fingers to light that many LEDs in order.</p>
+              <div class="matrix-card" data-matrix="3"><div class="matrix-card-header"><span class="matrix-card-title">Live Hardware Channels</span><span class="matrix-card-badge">Sequential Digital Pins</span></div><div class="matrix-channels"></div></div>
+              <div class="command-outbox"><span class="outbox-label">Last command sent</span><code class="outbox-code" id="cmd3">MODE3:0</code></div>
+            </section>
+
+            <section class="mode-pane wokwi-pane" id="mode4" role="tabpanel" hidden>
+              <div class="telemetry-row"><span class="telemetry-label">Browser simulator</span><div class="state-pill open">WOKWI READY</div></div>
+              <p class="instruction-box">Test the five-channel LED logic in an ESP32 simulator without connecting hardware.</p>
+              <div class="wokwi-frame-wrap"><iframe title="Wokwi ESP32 GestureLED simulation" src="https://wokwi.com/projects/479407290437929985?embed=1" loading="lazy"></iframe></div>
+              <a class="sim-link" href="https://wokwi.com/projects/479407290437929985" target="_blank" rel="noopener">Open simulator in a new tab ↗</a>
+            </section>
+          </div>
+        </aside>
+      </main>
+
+      <footer class="app-footer"><span>Created by <strong>Chyon Adhikary</strong></span><span>Web Serial · 115200 baud</span></footer>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script src="app.js" defer></script>
+  </body>
+</html>

@@ -1,0 +1,27 @@
+{
+  "name": "GestureLED ESP32 Controller",
+  "version": "1.0.0",
+  "description": "ESP32 WROOM-32 firmware for the GestureLED five-channel controller.",
+  "home_page": "https://github.com/skr-electronics-lab/GestureLED",
+  "wifi": false,
+  "improv": false,
+  "flashSettings": {
+    "mode": "dio",
+    "freq": "40m",
+    "flashSize": "4MB",
+    "baud": 460800,
+    "compress": true,
+    "erase": false
+  },
+  "builds": [
+    {
+      "chipFamily": "ESP32",
+      "parts": [
+        { "path": "https://skr-electronics-lab.github.io/GestureLED/firmware/bootloader.bin", "offset": 4096 },
+        { "path": "https://skr-electronics-lab.github.io/GestureLED/firmware/partitions.bin", "offset": 32768 },
+        { "path": "https://skr-electronics-lab.github.io/GestureLED/firmware/boot_app0.bin", "offset": 57344 },
+        { "path": "https://skr-electronics-lab.github.io/GestureLED/firmware/firmware.bin", "offset": 65536 }
+      ]
+    }
+  ]
+}
